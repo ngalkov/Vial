@@ -1,6 +1,7 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from vial import *
+
 
 class TestResponse(unittest.TestCase):
     def test_init(self):
@@ -46,3 +47,21 @@ class TestResponse(unittest.TestCase):
         response("environ", mock_start_response)
         mock_start_response.assert_called_with("500 Internal Server Error", [('Content-Length', '0')])
 
+
+class TestVial(unittest.TestCase):
+    @patch("vial.TEMPLATE_DIR", "")
+    def test_render_template_ok(self):
+        rendered = render_template(template_file="template_test.html",
+                                   context={"title": "Header", "content": "Содержание", "escaped": "<tag&>"})
+        self.assertEqual(rendered.replace("\r\n", "\n"),
+                         "<h1>Header</h1>\n<p>Содержание</p>\n<p>&lt;tag&amp;&gt;</p>")
+
+    @patch("vial.TEMPLATE_DIR", "")
+    def test_render_template_fail(self):
+        self.assertRaises(OSError, render_template, "bad_filename.html",
+                          {"title": "Header", "content": "Содержание", "escaped": "<tag&>"})
+        self.assertRaises(KeyError, render_template, "template_test.html", {})
+
+
+if __name__ == '__main__':
+    unittest.main()

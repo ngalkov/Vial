@@ -1,6 +1,13 @@
 """The Python WSGI picoframework"""
 
+import os
 import re
+import html
+from string import Template
+
+
+ENCODING = "utf-8"
+TEMPLATE_DIR = "./template"
 
 
 class Response:
@@ -15,7 +22,7 @@ class Response:
             self.body = list(body)
         self.status_line = status_line
         self.headers = []
-        self.encoding = "utf-8"
+        self.encoding = ENCODING
 
     def add_header(self, name, value):
         self.headers.append((name, value))
@@ -56,3 +63,13 @@ class Vial:
 
     def __call__(self, environ, start_response):
         return self.wsgi_app(environ, start_response)
+
+
+def render_template(template_file: str, context: dict) -> str:
+    """Replace placeholders in template_file accordingly to context. &, <, > will be escaped to HTML-safe sequences"""
+    template_path = os.path.join(TEMPLATE_DIR, template_file)
+    with open(template_path, encoding=ENCODING) as fp:
+        template_content = fp.read()
+    template = Template(template_content)
+    escaped_context = {key: html.escape(value) for key,value in context.items()}
+    return template.substitute(escaped_context)
