@@ -1,2 +1,6 @@
+from vial import Response
+
+
 def index(environ):
-    return b'Hi!<br> This is the main page.'
+    msg = 'Hi!<br> This is the main page.'
+    return Response(msg, "200 OK")
