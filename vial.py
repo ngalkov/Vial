@@ -43,12 +43,15 @@ class Response:
 
 class Vial:
     def __init__(self):
+        import views
         from urlmap import urlmap
+        self.views = views
         self.urlmap = urlmap
 
     def wsgi_app(self, environ, start_response):
         path_info = environ.get('PATH_INFO', '')
-        view = self.dispath_request(path_info)
+        view_name = self.dispath_request(path_info)
+        view = getattr(self.views, view_name)
         response = view(environ)
         return response(environ, start_response)
 
