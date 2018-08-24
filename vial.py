@@ -7,7 +7,7 @@ from string import Template
 
 
 ENCODING = "utf-8"
-TEMPLATE_DIR = "./template"
+TEMPLATE_DIR = "./templates"
 
 
 class Response:
@@ -50,16 +50,23 @@ class Vial:
 
     def wsgi_app(self, environ, start_response):
         path_info = environ.get('PATH_INFO', '')
-        view_name = self.dispath_request(path_info)
+        view_name, view_kwargs = self.dispath_url(path_info)
+        if not view_name:
+            response = self.not_found(environ)
+            return response(environ, start_response)
         view = getattr(self.views, view_name)
-        response = view(environ)
+        if view_kwargs:
+            response = view(environ, **view_kwargs)
+        else:
+            response = view(environ)
         return response(environ, start_response)
 
-    def dispath_request(self, path_info):
-        for pattern, view in self.urlmap:
-            if re.search(pattern, path_info):
-                return view
-        return self.not_found
+    def dispath_url(self, path_info):
+        for url_pattern, view_name in self.urlmap:
+            url_match = re.search(url_pattern, path_info)
+            if url_match:
+                return view_name, url_match.groupdict()
+        return None, {}
 
     def not_found(self, environ):
         return Response("Not found.", "404 Not Found")
@@ -74,5 +81,5 @@ def render_template(template_file: str, context: dict) -> str:
     with open(template_path, encoding=ENCODING) as fp:
         template_content = fp.read()
     template = Template(template_content)
-    escaped_context = {key: html.escape(value) for key,value in context.items()}
+    escaped_context = {key: html.escape(value) for key, value in context.items()}
     return template.substitute(escaped_context)
