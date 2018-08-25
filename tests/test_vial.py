@@ -59,8 +59,37 @@ class TestVial(unittest.TestCase):
         self.assertTupleEqual(app.dispath_url("/value/123"), ("viewC", {"param": "value", "id": "123"}))
         self.assertTupleEqual(app.dispath_url("/bad/path"), (None, {}))
 
-    def test_wsgi_app(self):  # TODO"
+    def test_static_file(self):
         app = Vial()
+        mock_environ = {}
+        mock_start_response = Mock()
+        # OK
+        response = app.static_file(mock_environ, "./static/static_file_text.txt")
+        returned = response(mock_environ, mock_start_response)
+        self.assertListEqual(returned, [b'Test static files serving'])
+        # Bad file name
+        response = app.static_file(mock_environ, "./static/bad_file_name.txt")
+        returned = response(mock_environ, mock_start_response)
+        mock_start_response.assert_called_with(
+            "404 Not Found",
+            [('Content-Length', '10'), ('Content-Type', 'text/html; charset = utf-8')]
+        )
+
+
+    def test_wsgi_app(self):
+        app = Vial()
+
+        # simple url (without parameters)
+        mock_environ = {"PATH_INFO": "/"}
+        mock_start_response = Mock()
+        returned = app(mock_environ, mock_start_response)
+        mock_start_response.assert_called_with(
+            '200 OK',
+            [('Content-Length', '5'), ('Content-Type', 'text/html; charset = utf-8')]
+        )
+        self.assertListEqual(returned, [b'viewA'])
+
+        # url with parameters)
         mock_environ = {"PATH_INFO": "/value/123"}
         mock_start_response = Mock()
         returned = app(mock_environ, mock_start_response)
@@ -69,6 +98,35 @@ class TestVial(unittest.TestCase):
             [('Content-Length', '17'), ('Content-Type', 'text/html; charset = utf-8')]
         )
         self.assertListEqual(returned, [b'viewC: value, 123'])
+
+        # bad url
+        mock_environ = {"PATH_INFO": "/bad/url"}
+        mock_start_response = Mock()
+        returned = app(mock_environ, mock_start_response)
+        mock_start_response.assert_called_with(
+            '404 Not Found',
+            [('Content-Length', '10'), ('Content-Type', 'text/html; charset = utf-8')]
+        )
+        self.assertListEqual(returned, [b'Not found.'])
+
+        # static url OK
+        mock_environ = {"PATH_INFO": "/static/static_file_text.txt"}
+        mock_start_response = Mock()
+        returned = app(mock_environ, mock_start_response)
+        mock_start_response.assert_called_with(
+            '200 OK',
+            [('Content-Length', '25'), ('Content-Type', 'text/html; charset = utf-8')]
+        )
+        self.assertListEqual(returned, [b'Test static files serving'])
+
+        # bad static url
+        mock_environ = {"PATH_INFO": "/ststic/bad/url"}
+        mock_start_response = Mock()
+        returned = app(mock_environ, mock_start_response)
+        mock_start_response.assert_called_with(
+            '404 Not Found',
+            [('Content-Length', '10'), ('Content-Type', 'text/html; charset = utf-8')]
+        )
 
     def test_render_template_ok(self):
         rendered = render_template(template_file="template_test.html",

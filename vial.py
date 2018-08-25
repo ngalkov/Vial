@@ -8,21 +8,23 @@ from string import Template
 
 ENCODING = "utf-8"
 TEMPLATE_DIR = "./templates"
+STATIC_DIR = "./static"
+STATIC_URL = "/static"
 
 
 class Response:
     # Response instance is a WSGI app itself. It can be useful for middleware.
-    def __init__(self, body=None, status_line=None):
+    def __init__(self, body=None, status_line=None, encoding=None):
         # self.body must be iterable
         if not body:
             self.body = []
-        elif isinstance(body, str):
+        elif isinstance(body, str) or isinstance(body, bytes):
             self.body = [body]
         else:
             self.body = list(body)
         self.status_line = status_line
         self.headers = []
-        self.encoding = ENCODING
+        self.encoding = encoding or ENCODING
 
     def add_header(self, name, value):
         self.headers.append((name, value))
@@ -32,11 +34,16 @@ class Response:
             self.status_line = "500 Internal Server Error"
             self.body = []
         # WSGI app must return byte string
-        encoded_body = [item.encode(self.encoding) for item in self.body]
+        encoded_body = []
+        for item in self.body:
+            if isinstance(item, str):
+                encoded_body.append(item.encode(self.encoding))
+            else:
+                encoded_body.append(item)
         encoded_body_length = sum(map(len, encoded_body))
         self.add_header("Content-Length", str(encoded_body_length))
         if encoded_body_length > 0:
-            self.add_header("Content-Type", "text/html; charset = %s" % self.encoding)
+            self.add_header("Content-Type", "text/html; charset = %s" % self.encoding)  # TODO: static files?
         start_response(self.status_line, self.headers)
         return encoded_body
 
@@ -48,8 +55,25 @@ class Vial:
         self.views = views
         self.urlmap = urlmap
 
+    def not_found(self, environ):
+        return Response("Not found.", "404 Not Found")
+
+    def static_file(self, environ, static_file_path):
+        if not os.path.isfile(static_file_path):
+            return self.not_found(environ)
+        try:
+            with open(static_file_path, "rb") as fp:
+                static_file_content = fp.read()
+        except OSError:
+            return Response(None, "500 Internal Server Error")
+        return Response(static_file_content, "200 OK")
+
     def wsgi_app(self, environ, start_response):
         path_info = environ.get('PATH_INFO', '')
+        if path_info.startswith(STATIC_URL):
+            static_file_path = os.path.join(STATIC_DIR, path_info.replace(STATIC_URL, "", 1).lstrip("/"))
+            response = self.static_file(environ, static_file_path)
+            return response(environ, start_response)
         view_name, view_kwargs = self.dispath_url(path_info)
         if not view_name:
             response = self.not_found(environ)
@@ -68,8 +92,6 @@ class Vial:
                 return view_name, url_match.groupdict()
         return None, {}
 
-    def not_found(self, environ):
-        return Response("Not found.", "404 Not Found")
 
     def __call__(self, environ, start_response):
         return self.wsgi_app(environ, start_response)
