@@ -1,11 +1,21 @@
-from vial import Response
+from vial import Response, render_template
 
 
 def index(environ):
-    msg = 'Hi!<br> This is the main page.'
-    return Response(msg, "200 OK")
+    content = render_template("index.html", {})
+    return Response(content, "200 OK")
+
+
+def hello(environ):
+    content = render_template("hello.html", {})
+    return Response(content, "200 OK")
 
 
 def item(environ, item_id):
-    msg = 'Item # %s' % item_id
-    return Response(msg, "200 OK")
+    content = render_template("item.html", {"item_id": item_id})
+    return Response(content, "200 OK")
+
+def logo(environ):
+    content = render_template("logo.html", {})
+    return Response(content, "200 OK")
+
