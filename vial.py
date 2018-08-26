@@ -11,10 +11,24 @@ TEMPLATE_DIR = "./templates"
 STATIC_DIR = "./static"
 STATIC_URL = "/static"
 
+MIME_TYPE = {
+    ".txt": "text/plain",
+    ".text": "text/plain",
+    ".htm": "text/html",
+    ".html": "text/html",
+    ".css": "text/css",
+    ".js": "application/javascript",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".swf": "application/x-shockwave-flash"
+}
+
 
 class Response:
     # Response instance is a WSGI app itself. It can be useful for middleware.
-    def __init__(self, body=None, status_line=None, encoding=None):
+    def __init__(self, body=None, status_line=None, content_type="text/html", encoding="utf-8"):
         # self.body must be iterable
         if not body:
             self.body = []
@@ -23,8 +37,9 @@ class Response:
         else:
             self.body = list(body)
         self.status_line = status_line
+        self.content_type = content_type
+        self.encoding = encoding
         self.headers = []
-        self.encoding = encoding or ENCODING
 
     def add_header(self, name, value):
         self.headers.append((name, value))
@@ -37,13 +52,15 @@ class Response:
         encoded_body = []
         for item in self.body:
             if isinstance(item, str):
-                encoded_body.append(item.encode(self.encoding))
+                encoded_body.append(item.encode(self.encoding or ENCODING))  # self.encoding can be None
             else:
                 encoded_body.append(item)
         encoded_body_length = sum(map(len, encoded_body))
+        content_type_header = self.content_type or "application/octet-stream" # self.content_type can be None
+        if self.encoding:
+            content_type_header += "; charset = %s" % self.encoding
+        self.add_header("Content-Type", content_type_header)
         self.add_header("Content-Length", str(encoded_body_length))
-        if encoded_body_length > 0:
-            self.add_header("Content-Type", "text/html; charset = %s" % self.encoding)  # TODO: static files?
         start_response(self.status_line, self.headers)
         return encoded_body
 
@@ -56,7 +73,7 @@ class Vial:
         self.urlmap = urlmap
 
     def not_found(self, environ):
-        return Response("Not found.", "404 Not Found")
+        return Response(body=None, status_line="404 Not Found", content_type=None, encoding=None)
 
     def static_file(self, environ, static_file_path):
         if not os.path.isfile(static_file_path):
@@ -66,7 +83,12 @@ class Vial:
                 static_file_content = fp.read()
         except OSError:
             return Response(None, "500 Internal Server Error")
-        return Response(static_file_content, "200 OK")
+        return Response(
+            body=static_file_content,
+            status_line="200 OK",
+            content_type=get_mime_type(static_file_path),
+            encoding=None
+        )
 
     def wsgi_app(self, environ, start_response):
         path_info = environ.get('PATH_INFO', '')
@@ -105,3 +127,8 @@ def render_template(template_file: str, context: dict) -> str:
     template = Template(template_content)
     escaped_context = {key: html.escape(value) for key, value in context.items()}
     return template.substitute(escaped_context)
+
+
+def get_mime_type(path):
+    ext = os.path.splitext(path)[1]
+    return MIME_TYPE.get(ext, "application/octet-stream")
