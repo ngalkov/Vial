@@ -56,7 +56,7 @@ class Response:
             else:
                 encoded_body.append(item)
         encoded_body_length = sum(map(len, encoded_body))
-        content_type_header = self.content_type or "application/octet-stream" # self.content_type can be None
+        content_type_header = self.content_type or "application/octet-stream"  # self.content_type can be None
         if self.encoding:
             content_type_header += "; charset = %s" % self.encoding
         self.add_header("Content-Type", content_type_header)
@@ -113,7 +113,6 @@ class Vial:
             if url_match:
                 return view_name, url_match.groupdict()
         return None, {}
-
 
     def __call__(self, environ, start_response):
         return self.wsgi_app(environ, start_response)

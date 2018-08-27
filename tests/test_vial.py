@@ -58,6 +58,7 @@ class TestResponse(unittest.TestCase):
         # test returned value
         self.assertListEqual(returned, [])
 
+
 class TestVial(unittest.TestCase):
     def test_dispath_request(self):
         app = Vial()
@@ -85,7 +86,6 @@ class TestVial(unittest.TestCase):
             "404 Not Found",
             [('Content-Type', 'application/octet-stream'), ('Content-Length', '0')]
         )
-
 
     def test_wsgi_app(self):
         app = Vial()
