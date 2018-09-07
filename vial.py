@@ -27,7 +27,12 @@ MIME_TYPE = {
 
 
 class Response:
-    # Response instance is a WSGI app itself. It can be useful for middleware.
+    """The Response object implements WSGI Response.
+
+    The Response instance will start a valid WSGI response when called with the environ and start response
+    callable. The Response instance is a WSGI app itself - it can be useful for middleware.
+    """
+
     def __init__(self, body=None, status_line=None, content_type="text/html", encoding="utf-8"):
         # self.body must be iterable
         if not body:
@@ -56,7 +61,7 @@ class Response:
             else:
                 encoded_body.append(item)
         encoded_body_length = sum(map(len, encoded_body))
-        content_type_header = self.content_type or "application/octet-stream" # self.content_type can be None
+        content_type_header = self.content_type or "application/octet-stream"  # self.content_type can be None
         if self.encoding:
             content_type_header += "; charset = %s" % self.encoding
         self.add_header("Content-Type", content_type_header)
@@ -66,6 +71,8 @@ class Response:
 
 
 class Vial:
+    """The Vial object implements a WSGI application."""
+
     def __init__(self):
         import views
         from urlmap import urlmap
@@ -113,7 +120,6 @@ class Vial:
             if url_match:
                 return view_name, url_match.groupdict()
         return None, {}
-
 
     def __call__(self, environ, start_response):
         return self.wsgi_app(environ, start_response)
