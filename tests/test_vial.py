@@ -1,13 +1,13 @@
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from vial import *
 
 
 class TestResponse(unittest.TestCase):
     def test_init(self):
-        response = Response(body="test body", status_line="test_status")
+        response = Response(body="test body", status_code=123)
         self.assertEqual(response.body, ["test body"])
-        self.assertEqual(response.status_line, "test_status")
+        self.assertEqual(response.status_code, 123)
         self.assertListEqual(response.headers, [])
         self.assertEqual(response.content_type, "text/html")
         self.assertEqual(response.encoding, "utf-8")
@@ -18,17 +18,17 @@ class TestResponse(unittest.TestCase):
         self.assertIsInstance(Response(body=["a", "b", "c"]).body, collections.Iterable)
 
     def test_add_header(self):
-        response = Response(body="test body", status_line="test_status")
+        response = Response(body="test body", status_code=123)
         response.add_header("header_name", "header_value")
         self.assertIn(("header_name", "header_value"), response.headers)
 
     def test_call_ok(self):
         mock_start_response = Mock()
-        response = Response(body=["line1", "строка2"], status_line="000 test_status")
+        response = Response(body=["line1", "строка2"], status_code=Status.OK)
         returned = response("environ", mock_start_response)
         # ensure start_response called
         mock_start_response.assert_called_with(
-            "000 test_status",
+            "200 OK",
             [('Content-Type', 'text/html; charset = utf-8'), ('Content-Length', '18')]
         )
         # test returned value
@@ -36,7 +36,7 @@ class TestResponse(unittest.TestCase):
 
     def test_call_empty_body(self):
         mock_start_response = Mock()
-        response = Response(status_line="200 OK")
+        response = Response(status_code=Status.OK)
         returned = response("environ", mock_start_response)
         # ensure start_response called
         mock_start_response.assert_called_with(
