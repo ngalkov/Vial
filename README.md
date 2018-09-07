@@ -36,12 +36,12 @@ urlmap = [
 
 views.py:
 ```
-from vial import Response, render_template
+from vial import Response, Status, render_template
 
 
 def hello(environ):
     content = "Hello World!"
-    return Response(content, "200 OK")
+    return Response(content, Status.OK)
 ```
 Configure your WSGI server to serve application.py. For example, to deploy aplication on HTTP port 8000 with uWSGI start it to run an HTTP server/router passing requests to your WSGI application:
 ```
@@ -86,10 +86,10 @@ A view is a function defined in views.py. Each view is responsible for returning
 ## Response
 Each view should return an instanse of Response class. To create it call
 ```
-Response(body=None, status_line=None, content_type="text/html", encoding="utf-8"
+Response(body=None, status_code=None, content_type="text/html", encoding="utf-8"
 ```
-* `body` is data that the body of HTTP response from server to client should contain
-* `status_line` is the status line of HTTP response from server
+* `body` is the body of HTTP response from server to client
+* `status_code` is the status code of HTTP response from server
 * `content_type`, `encoding`  - used to make `Content-Type` HTTP header
 
 A Response also automatically add `Content-Length` HTTP header. 

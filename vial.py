@@ -4,12 +4,30 @@ import os
 import re
 import html
 from string import Template
+from enum import Enum
 
 
 ENCODING = "utf-8"
 TEMPLATE_DIR = "./templates"
 STATIC_DIR = "./static"
 STATIC_URL = "/static"
+
+
+class Status(Enum):
+    OK = 200
+    BAD_REQUEST = 400
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    INTERNAL_ERROR = 500
+
+
+STATUS_LINES = {
+    Status.OK: "200 OK",
+    Status.BAD_REQUEST: "400 Bad Request",
+    Status.FORBIDDEN: "403 Forbidden",
+    Status.NOT_FOUND: "404 Not Found",
+    Status.INTERNAL_ERROR: "500 Internal Server Error",
+}
 
 MIME_TYPE = {
     ".txt": "text/plain",
@@ -33,7 +51,7 @@ class Response:
     callable. The Response instance is a WSGI app itself - it can be useful for middleware.
     """
 
-    def __init__(self, body=None, status_line=None, content_type="text/html", encoding="utf-8"):
+    def __init__(self, body=None, status_code=None, content_type="text/html", encoding="utf-8"):
         # self.body must be iterable
         if not body:
             self.body = []
@@ -41,7 +59,7 @@ class Response:
             self.body = [body]
         else:
             self.body = list(body)
-        self.status_line = status_line
+        self.status_code = status_code
         self.content_type = content_type
         self.encoding = encoding
         self.headers = []
@@ -50,8 +68,8 @@ class Response:
         self.headers.append((name, value))
 
     def __call__(self, environ, start_response):
-        if not self.status_line:
-            self.status_line = "500 Internal Server Error"
+        if not self.status_code:
+            self.status_code = Status.INTERNAL_ERROR
             self.body = []
         # WSGI app must return byte string
         encoded_body = []
@@ -66,7 +84,7 @@ class Response:
             content_type_header += "; charset = %s" % self.encoding
         self.add_header("Content-Type", content_type_header)
         self.add_header("Content-Length", str(encoded_body_length))
-        start_response(self.status_line, self.headers)
+        start_response(STATUS_LINES[self.status_code], self.headers)
         return encoded_body
 
 
@@ -80,7 +98,7 @@ class Vial:
         self.urlmap = urlmap
 
     def not_found(self, environ):
-        return Response(body=None, status_line="404 Not Found", content_type=None, encoding=None)
+        return Response(body=None, status_code=Status.NOT_FOUND, content_type=None, encoding=None)
 
     def static_file(self, environ, static_file_path):
         if not os.path.isfile(static_file_path):
@@ -89,10 +107,10 @@ class Vial:
             with open(static_file_path, "rb") as fp:
                 static_file_content = fp.read()
         except OSError:
-            return Response(None, "500 Internal Server Error")
+            return Response(None, Status.INTERNAL_ERROR)
         return Response(
             body=static_file_content,
-            status_line="200 OK",
+            status_code=Status.OK,
             content_type=get_mime_type(static_file_path),
             encoding=None
         )
