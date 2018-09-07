@@ -8,7 +8,7 @@ Vial parses url, extracts parameters from url (if necessary), selects an appropr
 ## Installation
 Vial is distributed as a single file module and does not depend on any external libraries. Just put vial.py into your project directory or anywhere on PYTHONPATH.
 
-## Quickstart: “Hello World” application
+## Quickstart: "Hello World" application
 Create project directory like this:  
 ```
 /hello_world
@@ -122,6 +122,7 @@ Simple example build with Vial is provided - see `./example` folder.
 
 ## Requirements
 Python 3.6 or higher  
+WSGI Server (uWSGI, Gunicorn, etc.)
 
 ## Tests
 A test suite is provided with a complete environment (`./tests` folder).  
