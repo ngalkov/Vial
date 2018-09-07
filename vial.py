@@ -75,9 +75,8 @@ class Response:
         encoded_body = []
         for item in self.body:
             if isinstance(item, str):
-                encoded_body.append(item.encode(self.encoding or ENCODING))  # self.encoding can be None
-            else:
-                encoded_body.append(item)
+                item = item.encode(self.encoding or ENCODING)  # self.encoding can be None
+            encoded_body.append(item)
         encoded_body_length = sum(map(len, encoded_body))
         content_type_header = self.content_type or "application/octet-stream"  # self.content_type can be None
         if self.encoding:
